@@ -1,0 +1,23 @@
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("ESP32_Daten");
+
+  var zeit = new Date();
+
+  var gewicht = e.parameter.gewicht || "";
+  var hall = e.parameter.hall || "";
+  var co2 = e.parameter.co2 || "";
+  var temperatur = e.parameter.temperatur || "";
+  var bemerkung = e.parameter.bemerkung || "";
+
+  sheet.appendRow([
+    zeit,
+    gewicht,
+    hall,
+    co2,
+    temperatur,
+    bemerkung
+  ]);
+
+  return ContentService.createTextOutput("ESP32 Daten gespeichert");
+}
