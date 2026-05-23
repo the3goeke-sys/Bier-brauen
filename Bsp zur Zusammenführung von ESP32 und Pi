@@ -1,0 +1,47 @@
+def verarbeite_brausensoren(esp32_daten, pi_daten):
+    # ESP32-Daten: Temperatur, Gewicht, CO2
+    # Pi-Daten: Tilt Hydrometer mit Dichte und Temperatur
+
+    if esp32_daten is None:
+        print("Fehler: Keine Daten vom ESP32")
+        return
+
+    if pi_daten is None:
+        print("Fehler: Keine Daten vom Raspberry Pi")
+        return
+
+    temperatur = esp32_daten["temperatur"]
+    gewicht = esp32_daten["gewicht"]
+    co2 = esp32_daten["co2"]
+
+    dichte = pi_daten["dichte"]
+    tilt_temperatur = pi_daten["temperatur"]
+
+    if temperatur > 25:
+        status_temperatur = "zu warm"
+    else:
+        status_temperatur = "ok"
+
+    if dichte > 1.020:
+        status_gaerung = "noch viel Zucker vorhanden"
+    else:
+        status_gaerung = "Gärung fast fertig"
+
+    if co2 > 500:
+        status_co2 = "CO2-Aktivität hoch"
+    else:
+        status_co2 = "CO2-Aktivität niedrig"
+
+    gesamtdaten = {
+        "temperatur_esp32": temperatur,
+        "temperatur_tilt": tilt_temperatur,
+        "gewicht": gewicht,
+        "co2": co2,
+        "dichte": dichte,
+        "status_temperatur": status_temperatur,
+        "status_gaerung": status_gaerung,
+        "status_co2": status_co2
+    }
+
+    print("Daten wurden zusammengeführt")
+    return gesamtdaten
