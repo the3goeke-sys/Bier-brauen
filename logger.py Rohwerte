@@ -1,0 +1,98 @@
+import gspread
+import serial
+import time
+import sqlite3
+from oauth2client.service_account import ServiceAccountCredentials
+
+# ---------------- GOOGLE SHEETS ----------------
+
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
+
+creds = ServiceAccountCredentials.from_json_keyfile_name(
+    r"C:\Users\HP\Documents\esp32_dashboard\esp32-v2-dahboard-9f74cdd5d2c3.json",
+    scope
+)
+
+client = gspread.authorize(creds)
+
+sheet = client.open_by_url(
+    "https://docs.google.com/spreadsheets/d/16qSRsdqKqTuPO_ETw0Ee0vPv7hJxNWvxadl4e8w75mQ/edit?gid=0#gid=0"
+).sheet1
+
+# ---------------- SQLITE ----------------
+
+conn = sqlite3.connect("brauerei.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS messungen (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    zeit TEXT,
+    gewicht REAL,
+    mx REAL,
+    my REAL,
+    mz REAL,
+    temperatur REAL
+)
+""")
+
+conn.commit()
+
+# ---------------- SERIELL ----------------
+
+ser = serial.Serial("COM9", 115200)
+
+time.sleep(2)
+
+print("Logger gestartet...")
+
+while True:
+
+    try:
+
+        line = ser.readline().decode("utf-8").strip()
+
+        if not line:
+            continue
+
+        print(line)
+
+        data = line.split(",")
+
+        if len(data) != 5:
+            continue
+
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Google Sheets
+        sheet.append_row([
+            timestamp,
+            data[0],
+            data[1],
+            data[2],
+            data[3],
+            data[4]
+        ])
+
+        # SQLite
+        cursor.execute("""
+        INSERT INTO messungen
+        (zeit, gewicht, mx, my, mz, temperatur)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            timestamp,
+            data[0],
+            data[1],
+            data[2],
+            data[3],
+            data[4]
+        ))
+
+        conn.commit()
+
+    except Exception as e:
+        print("Fehler:", e)
