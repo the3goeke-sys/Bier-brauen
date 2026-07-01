@@ -1,0 +1,87 @@
+#include <Wire.h>
+#include <SparkFun_Qwiic_Scale_NAU7802_Arduino_Library.h>
+#include <SparkFun_TMAG5273_Arduino_Library.h>
+
+// -------- Sensor-Objekte --------
+NAU7802 scale;
+TMAG5273 mag;
+
+// -------- Pins --------
+#define TEMP_PIN 34
+
+// -------- Kalibrierung --------
+const float GEWICHT_OFFSET = 1490.0;   // 0 kg
+const float GEWICHT_FAKTOR = 1000.0;   // geschätzt
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  Wire.begin();
+
+  analogReadResolution(12);
+  analogSetPinAttenuation(TEMP_PIN, ADC_11db);
+
+  Serial.println("Start Sensor Setup...");
+
+  if (!scale.begin()) {
+    Serial.println("ERROR: Scale nicht gefunden!");
+  } else {
+    Serial.println("Scale OK");
+  }
+
+  if (mag.begin() != 0) {
+    Serial.println("ERROR: Magnet Sensor nicht gefunden!");
+  } else {
+    Serial.println("Magnet OK");
+  }
+
+  Serial.println("Setup fertig");
+}
+
+void loop() {
+
+  // -------- Gewicht --------
+  long rawGewicht = 0;
+
+  if (scale.available()) {
+    rawGewicht = scale.getReading();
+  }
+
+  float gewichtKg =
+      (rawGewicht - GEWICHT_OFFSET) /
+      GEWICHT_FAKTOR;
+
+  if (gewichtKg < 0)
+    gewichtKg = 0;
+
+  // -------- Magnetfeld --------
+  float mx = mag.getXData();
+  float my = mag.getYData();
+  float mz = mag.getZData();
+
+  // -------- Temperatur --------
+  int rawTemp = analogRead(TEMP_PIN);
+
+  float temperatur =
+      23.0 +
+      ((rawTemp - 1202.0) / 366.0);
+
+  // -------- CSV Ausgabe --------
+  Serial.print(gewichtKg, 2);
+  Serial.print(",");
+
+  Serial.print(mx, 2);
+  Serial.print(",");
+
+  Serial.print(my, 2);
+  Serial.print(",");
+
+  Serial.print(mz, 2);
+  Serial.print(",");
+
+  Serial.println(temperatur, 1);
+
+  // 1 Messung pro Minute
+  delay(30000);
+}
